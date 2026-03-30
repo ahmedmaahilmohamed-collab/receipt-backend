@@ -311,3 +311,53 @@ app.post("/api/mark-receipt-uploaded", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+app.get("/api/has-pending-orders", async (req, res) => {
+  try {
+    const query = `
+      {
+        orders(first: 10, query: "financial_status:pending") {
+          edges {
+            node {
+              id
+              name
+              displayFinancialStatus
+              receiptUploaded: metafield(namespace: "custom", key: "receipt_uploaded") {
+                value
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await fetch(
+      `https://${process.env.SHOPIFY_SHOP}/admin/api/${process.env.SHOPIFY_API_VERSION}/graphql.json`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": process.env.SHOPIFY_ACCESS_TOKEN,
+        },
+        body: JSON.stringify({ query }),
+      }
+    );
+
+    const data = await response.json();
+
+    const orders = data?.data?.orders?.edges || [];
+
+    // Check if ANY order is pending and has NO receipt
+    const hasPendingOrders = orders.some((edge) => {
+      const order = edge.node;
+      return (
+        order.displayFinancialStatus === "PENDING" &&
+        (!order.receiptUploaded || order.receiptUploaded.value !== "true")
+      );
+    });
+
+    res.json({ hasPendingOrders });
+  } catch (error) {
+    console.error(error);
+    res.json({ hasPendingOrders: false });
+  }
+});
