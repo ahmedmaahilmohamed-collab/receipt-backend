@@ -344,7 +344,7 @@ app.post("/api/mark-receipt-uploaded", async (req, res) => {
                   ownerId: order.id,
                   namespace: "custom",
                   key: "receipt_url",
-                  type: "url",
+                  type: "single_line_text_field",
                   value: receiptUrl,
                 },
               ]
