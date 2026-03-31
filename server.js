@@ -180,6 +180,9 @@ app.get("/api/find-order", async (req, res) => {
               receiptStatus: metafield(namespace: "custom", key: "receipt_status") {
                 value
               }
+              receiptUrl: metafield(namespace: "custom", key: "receipt_url") {
+                value
+              }
             }
           }
         }
@@ -233,6 +236,9 @@ app.get("/api/find-order-by-id", async (req, res) => {
           receiptStatus: metafield(namespace: "custom", key: "receipt_status") {
             value
           }
+          receiptUrl: metafield(namespace: "custom", key: "receipt_url") {
+            value
+          }
         }
       }
       `,
@@ -263,6 +269,7 @@ app.get("/api/find-order-by-id", async (req, res) => {
 app.post("/api/mark-receipt-uploaded", async (req, res) => {
   try {
     const rawOrder = String(req.body.order || "").trim();
+    const receiptUrl = String(req.body.receipt_url || "").trim();
 
     if (!rawOrder) {
       return res.status(400).json({
@@ -331,6 +338,17 @@ app.post("/api/mark-receipt-uploaded", async (req, res) => {
             type: "single_line_text_field",
             value: "pending_verification",
           },
+          ...(receiptUrl
+            ? [
+                {
+                  ownerId: order.id,
+                  namespace: "custom",
+                  key: "receipt_url",
+                  type: "url",
+                  value: receiptUrl,
+                },
+              ]
+            : []),
         ],
       }
     );
