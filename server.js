@@ -209,6 +209,57 @@ app.get("/api/find-order", async (req, res) => {
   }
 });
 
+app.get("/api/find-order-by-id", async (req, res) => {
+  try {
+    const orderId = String(req.query.orderId || "").trim();
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing ?orderId=gid://shopify/Order/123",
+      });
+    }
+
+    const data = await shopifyGraphQL(
+      `
+      query FindOrderById($id: ID!) {
+        order(id: $id) {
+          id
+          name
+          displayFinancialStatus
+          receiptUploaded: metafield(namespace: "custom", key: "receipt_uploaded") {
+            value
+          }
+          receiptStatus: metafield(namespace: "custom", key: "receipt_status") {
+            value
+          }
+        }
+      }
+      `,
+      { id: orderId }
+    );
+
+    const order = data.order || null;
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: `Order ${orderId} not found`,
+      });
+    }
+
+    res.json({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 app.post("/api/mark-receipt-uploaded", async (req, res) => {
   try {
     const rawOrder = String(req.body.order || "").trim();
